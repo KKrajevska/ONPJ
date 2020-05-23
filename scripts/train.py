@@ -6,6 +6,7 @@ from Vectorizer import Vectorizer
 def main():
     labeled_train_data_path = "../OLIDv1.0/olid-training-v1.0.tsv"
     for i in range(3):
+        dataReader=DataReader(labeled_train_data_path)
         train_data, labels=dataReader.get_train_data_and_labels(i)
         text_process=TextProcessor()
         tr_data_processed=text_process.process_text(train_data)
