@@ -1,13 +1,14 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+
 class Vectorizer:
     def __init__(self):
-        self.vectorizer=None
-        self.vocab_len=None
-    
+        self.vectorizer = None
+        self.vocab_len = None
+
     def tf_idf_vectorize(self, data):
         vectorizer = TfidfVectorizer()
-        merged_data = [' '.join(tweet) for tweet in data]
+        merged_data = [" ".join(tweet) for tweet in data]
         if not self.vectorizer:
             self.vectorizer = vectorizer.fit(merged_data)
 
