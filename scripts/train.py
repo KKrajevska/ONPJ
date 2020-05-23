@@ -13,3 +13,6 @@ def main():
         vect_data=vectorizer.tf_idf_vectorize(tr_data_processed)
         model=Model(vect_data, labels, vectorizer.vocab_len)
         model.train_model(0.001, 1000, 64)
+
+if __name__ == "__main__":
+    main()
