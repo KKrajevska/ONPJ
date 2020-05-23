@@ -1,5 +1,6 @@
 from sklearn.preprocessing import OneHotEncoder
 import tensorflow
+from tensorflow.keras import Sequential
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.layers import Embedding, LSTM, Dense
 from tensorflow.keras.metrics import Accuracy, Precision, Recall, AUC
@@ -72,4 +73,3 @@ class Model:
             epochs=epochs,
             callbacks=my_callbacks,
         )
-
