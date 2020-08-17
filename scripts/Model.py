@@ -4,13 +4,14 @@ from tensorflow.keras import Sequential
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.layers import Embedding, LSTM, Dense
-from tensorflow.keras.metrics import Accuracy, Precision, Recall, AUC
+from tensorflow.keras.metrics import CategoricalAccuracy, Precision, Recall, AUC
 from tensorflow.keras.callbacks import (
     EarlyStopping,
     ModelCheckpoint,
     ReduceLROnPlateau,
     TensorBoard,
 )
+from pathlib import Path
 import numpy as np
 
 
@@ -41,27 +42,30 @@ class Model:
 
     def construct_LSTM_Model(self, lr):
         model = Sequential()
-        model.add(Embedding(self.vocab_len, 64, input_length=self.input_len))
-        model.add(LSTM(200))
+        model.add(Embedding(self.vocab_len, 32, input_length=self.input_len))
+        model.add(LSTM(128))
         model.add(Dense(self.encoded_labels.shape[1], activation="softmax"))
         adam = Adam(lr=lr)
         model.compile(
             loss="binary_crossentropy"
             if self.encoded_labels.shape[1] == 2
-            else "categorical_crossntropy",
+            else "categorical_crossentropy",
             optimizer=adam,
-            metrics=[Accuracy(), Precision(), Recall(), AUC()],
+            metrics=[CategoricalAccuracy(), Precision(), Recall(), AUC()],
         )
         return model
 
     def train_model(self, lr, epochs, batch_size, task_type):
+        filepath = Path("./models/models-task-" + task_type)
+        filepath.mkdir(parents=True, exist_ok=True)
         my_callbacks = [
-            EarlyStopping(patience=10),
             ModelCheckpoint(
-                filepath="./models-task-"
+                filepath="./models/models-task-"
                 + task_type
-                + "/model.{epoch:02d}-{val_loss:.2f}.h5"
+                + "/model.{epoch:02d}-{val_loss:.2f}.h5",
+                verbose=10
             ),
+            EarlyStopping(patience=10),
             TensorBoard(log_dir="./logs"),
             ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=5, min_lr=10e-5),
         ]

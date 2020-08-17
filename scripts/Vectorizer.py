@@ -7,7 +7,7 @@ class Vectorizer:
         self.vocab_len = None
 
     def tf_idf_vectorize(self, data):
-        vectorizer = TfidfVectorizer()
+        vectorizer = TfidfVectorizer(max_features=5000)
         merged_data = [" ".join(tweet) for tweet in data]
         if not self.vectorizer:
             self.vectorizer = vectorizer.fit(merged_data)

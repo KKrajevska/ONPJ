@@ -14,6 +14,7 @@ def main():
         vectorizer = Vectorizer()
         vect_data = vectorizer.tf_idf_vectorize(tr_data_processed)
         model = Model(vect_data, labels, vectorizer.vocab_len)
+        # breakpoint()
         model.train_model(0.001, 1000, 64, str(i))
 
 
