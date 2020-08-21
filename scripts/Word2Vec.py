@@ -1,6 +1,7 @@
 import spacy
 import numpy as np
-from joblib import Parallel, delayed
+
+# from joblib import Parallel, delayed
 
 from typing import List, Any
 from tqdm import tqdm
@@ -13,12 +14,12 @@ class Word2VecVectorizer:
     def get_doc_embs(self, data):
         samples = self.get_spacy_repr(data)
         emmbedings = []
-        for sample in sample:
+        for sample in samples:
             doc_emb = None
             for token in sample:
                 if doc_emb is None:
                     doc_emb = np.zeros_like(token.vector)
-                doc_emb += token.vector / len(tokens)
+                doc_emb += token.vector / len(sample)
 
             emmbedings.append(doc_emb)
 
@@ -30,4 +31,3 @@ class Word2VecVectorizer:
             return [self.nlp(sample) for sample in tqdm(data)]
         else:
             return [self.nlp(sample) for sample in data]
-

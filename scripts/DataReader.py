@@ -61,6 +61,13 @@ class DataReader:
 
         return label
 
+    def test_label_encode(self, label):
+        if label == "NOT" or label == "UNT" or label == "IND":
+            return 0
+        if label == "OFF" or label == "TIN" or label == "GRP":
+            return 1
+        return 2
+
     def get_test_data(self, path):
         data = []
         with open(path, encoding="utf8") as tf:
@@ -78,7 +85,7 @@ class DataReader:
         with open(path, encoding="utf8") as tf:
             reader = csv.reader(tf, delimiter=",")
             for line in reader:
-                labels.append(line[1])
+                labels.append(self.test_label_encode(line[1]))
 
         return labels
 
