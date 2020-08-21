@@ -31,3 +31,9 @@ class Word2VecVectorizer:
             return [self.nlp(sample) for sample in tqdm(data)]
         else:
             return [self.nlp(sample) for sample in data]
+
+    def vectorize(self, data: List[str], use_tqdm: bool = True) -> List[Any]:
+        if use_tqdm:
+            return np.array([self.nlp(sample).vector for sample in tqdm(data)])
+        else:
+            return np.array([self.nlp(sample).vector for sample in data])

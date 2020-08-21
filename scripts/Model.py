@@ -12,7 +12,6 @@ from tensorflow.keras.layers import (
     Input,
     SpatialDropout1D,
     Bidirectional,
-    # Flatten,
 )
 from tensorflow.keras.metrics import (
     CategoricalAccuracy,
@@ -37,7 +36,6 @@ class Model:
         self.vocab_len = vocab_len
         self.max_len = max_len
         self.encoder = None
-        # self.input_len = self.find_max_len()
         self.encoded_labels = (
             self.one_hot_encoding(self.labels)
             if max(self.labels) > 1
@@ -61,47 +59,22 @@ class Model:
         return data
         # return pad_sequences(data, maxlen=1500, padding="post", dtype="float32")
 
-    def construct_LSTM_Model(self, lr):
-        # model = Sequential()
-        # model.add(Input(shape=(self.vocab_len,)))
-        # model.add(Dense(512, activation="relu"))
-        # model.add(Dense(256, activation="relu"))
-        # model.add(Dense(128, activation="relu"))
-        # model.add(Dense(self.encoded_labels.shape[1], activation="softmax"))
-        # adam = Adam(lr=lr)
-        # model.compile(loss=CategoricalCrossentropy(from_logits=False), optimizer=adam, metrics=[CategoricalAccuracy(), Precision(), Recall(), AUC()])
-        # return model
-
+    def construct_FFCNN_Model(self, lr):
         model = Sequential()
-        model.add(Input(shape=(self.max_len,)))
-        model.add(Embedding(self.vocab_len, 128, input_length=self.max_len))
-        model.add(SpatialDropout1D(0.2))
-        model.add(Bidirectional(LSTM(128, activation="tanh", return_sequences=True)))
-        model.add(Bidirectional(LSTM(128, activation="tanh", return_sequences=False)))
-        # if max(self.labels) > 1:
-        #     model.add(Flatten())
+        model.add(Input(shape=(300,)))
+        model.add(Dense(256, activation="elu"))
+        model.add(Dropout(0.2))
+        model.add(Dense(128, activation="elu"))
+        model.add(Dropout(0.2))
         model.add(Dense(64, activation="elu"))
-        model.add(Dropout(0.5))
+        model.add(Dropout(0.2))
         model.add(Dense(32, activation="elu"))
-        model.add(Dropout(0.5))
-        model.add(Dense(16, activation="elu"))
-        model.add(Dropout(0.5))
-        model.add(
-            Dense(
+        model.add(Dropout(0.2))
+        model.add(Dense(
                 self.encoded_labels.shape[1] if max(self.labels) > 1 else 1,
                 activation="softmax" if max(self.labels) > 1 else "sigmoid",
-            )
-        )
-        print("##########################", max(self.labels) > 1)
-        # model.add(Dense(self.encoded_labels.shape[1]))
+            ))
         adam = Adam(lr=lr)
-        # model.compile(
-        #     loss="binary_crossentropy"
-        #     if self.encoded_labels.shape[1] == 2
-        #     else "categorical_crossentropy",
-        #     optimizer=adam,
-        #     metrics=[CategoricalAccuracy(), Precision(), Recall(), AUC()],
-        # )
         loss = (
             CategoricalCrossentropy() if max(self.labels) > 1 else BinaryCrossentropy()
         )
@@ -114,11 +87,45 @@ class Model:
             loss=loss,
             optimizer=adam,
             metrics=[accuracy]
-            # metrics=[BinaryAccuracy(), Precision(thresholds=0.5), Recall(thresholds=0.5), AUC()],
         )
         return model
 
-    def train_model(self, lr, epochs, batch_size, task_type, prefix):
+    def construct_LSTM_Model(self, lr):
+        model = Sequential()
+        model.add(Input(shape=(self.max_len,)))
+        model.add(Embedding(self.vocab_len, 128, input_length=self.max_len))
+        model.add(SpatialDropout1D(0.2))
+        model.add(Bidirectional(LSTM(128, activation="tanh", return_sequences=True)))
+        model.add(Bidirectional(LSTM(128, activation="tanh", return_sequences=False)))
+        model.add(Dense(64, activation="elu"))
+        model.add(Dropout(0.5))
+        model.add(Dense(32, activation="elu"))
+        model.add(Dropout(0.5))
+        model.add(Dense(16, activation="elu"))
+        model.add(Dropout(0.5))
+        model.add(
+            Dense(
+                self.encoded_labels.shape[1] if max(self.labels) > 1 else 1,
+                activation="softmax" if max(self.labels) > 1 else "sigmoid",
+            )
+        )
+        adam = Adam(lr=lr)
+        loss = (
+            CategoricalCrossentropy() if max(self.labels) > 1 else BinaryCrossentropy()
+        )
+        accuracy = (
+            CategoricalAccuracy(name="acc")
+            if max(self.labels) > 1
+            else BinaryAccuracy(name="acc")
+        )
+        model.compile(
+            loss=loss,
+            optimizer=adam,
+            metrics=[accuracy]
+        )
+        return model
+
+    def train_model(self, lr, epochs, batch_size, task_type, prefix, model_type="LSTM"):
         filepath = Path(f"./models/{prefix}/models-task-{task_type}")
         filepath.mkdir(parents=True, exist_ok=True)
         my_callbacks = [
@@ -136,7 +143,7 @@ class Model:
                 monitor="val_loss", factor=0.5, patience=5, min_lr=10e-5, verbose=1
             ),
         ]
-        self.model = self.construct_LSTM_Model(lr)
+        self.model = self.construct_LSTM_Model(lr) if model_type=="LSTM" else self.construct_FFCNN_Model(lr)
         self.model.fit(
             self.train_data,
             self.encoded_labels,
@@ -154,18 +161,10 @@ class Model:
         max_val_acc = 0.0
         for model_file in os.listdir(path):
             [acc, loss] = map(float, model_file.replace(".h5", "").split("-")[1:])
-            # start = model_file.find("-") + 1
-            # end = model_file.find(".h5")
-
-            # val_los = float(model_file[start:end])
             if acc > max_val_acc or (acc == max_val_acc and loss < min_val_los):
                 min_val_los = loss
                 max_val_acc = acc
                 best_model = model_file
-            # if val_los > min_val_los:
-            #     best_model = model_file
-            #     min_val_los = val_los
 
-        print(min_val_los, best_model)
         loaded = load_model(path + "/" + best_model)
         return loaded
