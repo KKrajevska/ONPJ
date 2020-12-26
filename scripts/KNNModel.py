@@ -61,7 +61,7 @@ class KNNModel:
         model = load("KNN_model.joblib")
         self.embeddings = model["embeddings"]
         self.labels = model["lables"]
-        self.K = 150
+        self.K = 15
 
     def clasify_sample(self, sample: str):
         spacy_sample = self.w2v.get_spacy_repr([sample], use_tqdm=False)[0]
