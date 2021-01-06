@@ -68,7 +68,13 @@ def ULMFIT_classifier(train_df):
         data_classifier, AWD_LSTM, drop_mult=0.5, metrics=accuracy_multi
     )
     learn_classifier = learn_classifier.load_encoder("ULMFIT_lm_encoder_final")
-    learn_classifier.fit_one_cycle(4, 2e-2)
+    learn_classifier.fit_one_cycle(1, 2e-2)
+    learn_classifier.freeze_to(-2)
+    learn_classifier.fit_one_cycle(1, slice(1e-2 / (2.6 ** 4), 1e-2))
+    learn_classifier.freeze_to(-3)
+    learn_classifier.fit_one_cycle(1, slice(5e-3 / (2.6 ** 4), 5e-3))
+    learn_classifier.unfreeze()
+    learn_classifier.fit_one_cycle(1, slice(1e-3 / (2.6 ** 4), 1e-3))
     learn_classifier.recorder.plot_loss()
     plt.savefig("metrics_classifier.png")
     learn_classifier.export("ULMFIT_classifier.pkl")
@@ -86,55 +92,82 @@ def evaluate(test_df, labels_df):
     # print(len(probs[0]))
     # print(len(labels_df[0]))
 
-    labels_df_flat = labels_df.flatten()
-    probs_flat = probs.flatten()
+    # labels_df_flat = labels_df.flatten()
+    # probs_flat = probs.flatten()
     # print(labels_df[0])
-    accuracy = accuracy_score(labels_df_flat, probs_flat)
-    classification_report_ = classification_report(labels_df_flat, probs_flat)
-    roc_auc_list = []
-    fprs = []
-    tprs = []
-    for cnt in range(7):
-        roc_auc_list.append(
-            roc_auc_score(
-                labels_df[:, cnt],
-                probs[:, cnt],
-            )
+    accuracy = accuracy_score(labels_df, probs)
+    classification_report_ = classification_report(labels_df, probs)
+    roc_auc_score_ = roc_auc_score(labels_df, probs, average=None)
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    for i in range(6):
+        fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])
+
+    colors = cycle(["aqua", "darkorange", "cornflowerblue"])
+    for i, color in zip(range(6), colors):
+        plt.plot(
+            fpr[i],
+            tpr[i],
+            color=color,
+            lw=2,
+            label="ROC curve of class {0} (area = {1:0.2f})" "".format(i, roc_auc[i]),
         )
-        fpr, tpr, _ = roc_curve(
-            labels_df[:, cnt],
-            probs[:, cnt],
-        )
-        fprs.append(fpr)
-        tprs.append(tpr)
+
+    plt.plot([0, 1], [0, 1], "k--", lw=2)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("Some extension of Receiver operating characteristic to multi-class")
+    plt.legend(loc="lower right")
+    plt.savefig("ULMFIT_ROC_CURVE.png")
+
+    # roc_auc_list = []
+    # fprs = []
+    # tprs = []
+    # for cnt in range(7):
+    #     roc_auc_list.append(
+    #         roc_auc_score(
+    #             labels_df[:, cnt],
+    #             probs[:, cnt],
+    #         )
+    #     )
+    #     fpr, tpr, _ = roc_curve(
+    #         labels_df[:, cnt],
+    #         probs[:, cnt],
+    #     )
+    #     fprs.append(fpr)
+    #     tprs.append(tpr)
 
     with open("ULMFIT_report.txt", "w") as f:
         f.write("acc: " + str(accuracy) + "\n")
         f.write(classification_report_ + "\n")
-        f.write("roc_auc_0: " + str(roc_auc_list[0]) + "\n")
-        f.write("roc_auc_1: " + str(roc_auc_list[1]) + "\n")
-        f.write("roc_auc_2: " + str(roc_auc_list[2]) + "\n")
-        f.write("roc_auc_3: " + str(roc_auc_list[3]) + "\n")
-        f.write("roc_auc_4: " + str(roc_auc_list[4]) + "\n")
-        f.write("roc_auc_5: " + str(roc_auc_list[5]) + "\n")
-        f.write("roc_auc_6: " + str(roc_auc_list[6]) + "\n")
+        f.write("roc_auc_0: " + str(roc_auc_score_) + "\n")
+        # f.write("roc_auc_1: " + str(roc_auc_list[1]) + "\n")
+        # f.write("roc_auc_2: " + str(roc_auc_list[2]) + "\n")
+        # f.write("roc_auc_3: " + str(roc_auc_list[3]) + "\n")
+        # f.write("roc_auc_4: " + str(roc_auc_list[4]) + "\n")
+        # f.write("roc_auc_5: " + str(roc_auc_list[5]) + "\n")
+        # f.write("roc_auc_6: " + str(roc_auc_list[6]) + "\n")
 
-    plt.figure()
-    plt.plot(fprs[0], tprs[0], label="ULMFIT class 0")
-    plt.plot(fprs[1], tprs[1], label="ULMFIT class 1")
-    plt.plot(fprs[2], tprs[2], label="ULMFIT class 2")
-    plt.plot(fprs[3], tprs[3], label="ULMFIT class 3")
+    # plt.figure()
+    # plt.plot(fprs[0], tprs[0], label="ULMFIT class 0")
+    # plt.plot(fprs[1], tprs[1], label="ULMFIT class 1")
+    # plt.plot(fprs[2], tprs[2], label="ULMFIT class 2")
+    # plt.plot(fprs[3], tprs[3], label="ULMFIT class 3")
 
-    plt.plot(fprs[4], tprs[4], label="ULMFIT class 4")
-    plt.plot(fprs[5], tprs[5], label="ULMFIT class 5")
-    plt.plot(fprs[6], tprs[6], label="ULMFIT class 6")
+    # plt.plot(fprs[4], tprs[4], label="ULMFIT class 4")
+    # plt.plot(fprs[5], tprs[5], label="ULMFIT class 5")
+    # plt.plot(fprs[6], tprs[6], label="ULMFIT class 6")
 
-    plt.plot([0, 1], [0, 1], "k--")
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.title("ROC curve (zoomed in at top left)")
-    plt.legend(loc="lower right")
-    plt.savefig("ULMFIT_ROC_CURVE.png")
+    # plt.plot([0, 1], [0, 1], "k--")
+    # plt.xlim([0.0, 1.0])
+    # plt.ylim([0.0, 1.05])
+    # plt.title("ROC curve (zoomed in at top left)")
+    # plt.legend(loc="lower right")
+    # plt.savefig("ULMFIT_ROC_CURVE.png")
 
 
 def append_okay(row, labels_list):
