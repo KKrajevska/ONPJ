@@ -102,7 +102,7 @@ def evaluate(test_df, labels_df):
     tpr = dict()
     roc_auc = dict()
     for i in range(6):
-        fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i])
+        fpr[i], tpr[i], _ = roc_curve(labels_df[:, i], probs[:, i])
         roc_auc[i] = auc(fpr[i], tpr[i])
 
     colors = cycle(["aqua", "darkorange", "cornflowerblue"])
